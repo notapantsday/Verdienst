@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Verdienst heute</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0f172a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Verdienst">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="icon-192.png">
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #0f172a;
+    color: #e2e8f0;
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 16px;
+  }
+  .card {
+    background: #1e293b;
+    border-radius: 20px;
+    padding: 28px 24px;
+    width: 100%;
+    max-width: 440px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+  }
+  h1 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 0 0 20px;
+    color: #94a3b8;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  h2 {
+    font-size: 0.75rem;
+    font-weight: 700;
+    margin: 0 0 12px;
+    color: #64748b;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .earned {
+    font-size: 3.2rem;
+    font-weight: 700;
+    color: #4ade80;
+    font-variant-numeric: tabular-nums;
+    margin: 8px 0 4px;
+    line-height: 1;
+  }
+  .earned small { font-size: 1.6rem; color: #86efac; }
+  .sub {
+    font-size: 0.9rem;
+    color: #94a3b8;
+    margin-bottom: 24px;
+  }
+  .row {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid #334155;
+    font-size: 0.95rem;
+  }
+  .row:last-of-type { border-bottom: none; }
+  .row span:last-child {
+    color: #e2e8f0;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+  }
+  .row span:first-child { color: #94a3b8; }
+  label.option {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 0;
+    cursor: pointer;
+    font-size: 0.9rem;
+    user-select: none;
+  }
+  label.option input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    accent-color: #4ade80;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .divider {
+    height: 1px;
+    background: #334155;
+    margin: 20px 0;
+  }
+  .deduction {
+    color: #f87171 !important;
+  }
+  .status {
+    font-size: 0.8rem;
+    color: #64748b;
+    text-align: center;
+    margin-top: 16px;
+  }
+
+  .field {
+    margin-bottom: 14px;
+  }
+  .field label {
+    display: block;
+    font-size: 0.85rem;
+    color: #94a3b8;
+    margin-bottom: 6px;
+  }
+  .field input {
+    width: 100%;
+    background: #0f172a;
+    border: 1px solid #334155;
+    color: #e2e8f0;
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 0.95rem;
+    font-family: inherit;
+  }
+  .field input:focus {
+    outline: none;
+    border-color: #4ade80;
+  }
+  .field select {
+    background: #0f172a;
+    border: 1px solid #334155;
+    color: #e2e8f0;
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 0.95rem;
+    font-family: inherit;
+  }
+  .field select:focus {
+    outline: none;
+    border-color: #4ade80;
+  }
+  .time-row {
+    display: flex;
+    gap: 10px;
+  }
+  .time-row input[type="time"] {
+    flex: 1.4;
+  }
+  .time-row select {
+    flex: 1;
+  }
+  .rate-preview {
+    font-size: 0.8rem;
+    color: #64748b;
+    margin: -6px 0 14px;
+  }
+
+  button.btn {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+  }
+  .btn-start {
+    background: #4ade80;
+    color: #0f172a;
+  }
+  .btn-start:hover { background: #86efac; }
+  .btn-stop {
+    background: #f87171;
+    color: #0f172a;
+  }
+  .btn-stop:hover { background: #fca5a5; }
+
+  .saved-hint {
+    font-size: 0.75rem;
+    color: #4ade80;
+    text-align: center;
+    height: 16px;
+    margin-top: 8px;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .saved-hint.show { opacity: 1; }
+</style>
+</head>
+<body>
+<div class="card">
+
+  <h1>Verdienst heute</h1>
+  <div class="earned" id="earned">0,00 <small>€</small></div>
+  <div class="sub" id="rate">– €/Std.</div>
+
+  <div class="row"><span>Start</span><span id="startDisplay">–</span></div>
+  <div class="row"><span>Arbeitszeit</span><span id="worked">0:00:00</span></div>
+  <div class="row" id="deductionRow" style="display:none;">
+    <span>Pausenabzug</span>
+    <span class="deduction" id="deduction">– 0,00 €</span>
+  </div>
+
+  <div class="divider"></div>
+
+  <h2>Einstellungen</h2>
+
+  <div class="field">
+    <label for="salaryInput">Monatsgehalt (Euro)</label>
+    <input type="number" id="salaryInput" placeholder="z. B. 3200" step="0.01" min="0">
+  </div>
+
+  <div class="field">
+    <label for="hoursInput">Wöchentliche Arbeitszeit (Std.)</label>
+    <input type="number" id="hoursInput" placeholder="z. B. 40" step="0.5" min="0">
+  </div>
+
+  <div class="rate-preview" id="ratePreview">– €/Std. · – €/Sek.</div>
+
+  <div class="field">
+    <label for="startTimeInput">Start-Zeit</label>
+    <div class="time-row">
+      <input type="time" id="startTimeInput">
+      <select id="startDaySelect">
+        <option value="0">Heute</option>
+        <option value="-1">Gestern</option>
+      </select>
+    </div>
+  </div>
+
+  <label class="option">
+    <input type="checkbox" id="breakOption">
+    Pausen berücksichtigen (0,5 h ab 6 Std., +0,25 h ab 9 Std.)
+  </label>
+
+  <label class="option">
+    <input type="checkbox" id="demoMode">
+    Demo-Modus (Zeitraffer, 60×)
+  </label>
+
+  <div class="saved-hint" id="savedHint">Einstellungen gespeichert</div>
+
+  <div class="divider"></div>
+
+  <button class="btn btn-start" id="startBtn">Start</button>
+
+  <div class="status" id="status">Nicht gestartet.</div>
+</div>
+
+<script>
+(function() {
+  // ==== KONSTANTEN ====
+  const WOCHEN_PRO_JAHR = 52.1429; // 365 Tage / 7
+  const MONATE_PRO_JAHR = 12;
+
+  const PAUSE_1_AB_STUNDEN = 6;
+  const PAUSE_1_STUNDEN = 0.5;
+  const PAUSE_2_AB_STUNDEN = 9;
+  const PAUSE_2_STUNDEN = 0.25;
+
+  const STORAGE_KEY = 'verdienstTracker';
+
+  // ==== DOM ====
+  const salaryInput = document.getElementById('salaryInput');
+  const hoursInput = document.getElementById('hoursInput');
+  const ratePreview = document.getElementById('ratePreview');
+  const startTimeInput = document.getElementById('startTimeInput');
+  const startDaySelect = document.getElementById('startDaySelect');
+  const breakOption = document.getElementById('breakOption');
+  const demoMode = document.getElementById('demoMode');
+  const startBtn = document.getElementById('startBtn');
+  const savedHint = document.getElementById('savedHint');
+
+  const elEarned = document.getElementById('earned');
+  const elRate = document.getElementById('rate');
+  const elWorked = document.getElementById('worked');
+  const elDeduction = document.getElementById('deduction');
+  const elDeductionRow = document.getElementById('deductionRow');
+  const elStatus = document.getElementById('status');
+  const startDisplay = document.getElementById('startDisplay');
+
+  let state = {
+    salary: null,
+    weeklyHours: null,
+    startTimestamp: null, // ms epoch
+    startIsPreviousDay: false, // true = Start war gestern (Nachtdienst)
+    breakOption: false,
+    demoMode: false
+  };
+
+  let demoOffset = 0;
+  let lastRealTime = Date.now();
+  let savedHintTimeout = null;
+
+  // ==== PERSISTENZ ====
+  function saveState() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      savedHint.classList.add('show');
+      clearTimeout(savedHintTimeout);
+      savedHintTimeout = setTimeout(() => savedHint.classList.remove('show'), 1200);
+    } catch(e) {}
+  }
+
+  function loadState() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        // Startzeit nur übernehmen, wenn sie plausibel aktuell ist
+        // (max. 30 Std. in der Vergangenheit, max. 12 Std. in der Zukunft) –
+        // so bleiben Nachtdienste über Mitternacht erhalten, alte Reste werden verworfen.
+        if (parsed.startTimestamp) {
+          const now = Date.now();
+          const diff = now - parsed.startTimestamp;
+          if (diff > 30 * 3600 * 1000 || diff < -12 * 3600 * 1000) {
+            parsed.startTimestamp = null;
+            parsed.startIsPreviousDay = false;
+          }
+        }
+        state = Object.assign(state, parsed);
+      }
+    } catch(e) {}
+  }
+
+  // ==== HILFSFUNKTIONEN ====
+  function berechneSekundenlohn(monatsgehalt, wochenstunden) {
+    if (!monatsgehalt || !wochenstunden) return 0;
+    const jahresgehalt = monatsgehalt * MONATE_PRO_JAHR;
+    const jahresstunden = wochenstunden * WOCHEN_PRO_JAHR;
+    const stundenlohn = jahresgehalt / jahresstunden;
+    return stundenlohn / 3600;
+  }
+
+  function formatMoney(v) {
+    return v.toFixed(2).replace('.', ',');
+  }
+
+  function formatDuration(totalSeconds) {
+    if (totalSeconds < 0) totalSeconds = 0;
+    const h = Math.floor(totalSeconds / 3600);
+    const m = Math.floor((totalSeconds % 3600) / 60);
+    const s = Math.floor(totalSeconds % 60);
+    return h + ':' + String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+  }
+
+  function berechnePausenAbzug(gearbeiteteStunden) {
+    let abzug = 0;
+    if (gearbeiteteStunden >= PAUSE_1_AB_STUNDEN) abzug += PAUSE_1_STUNDEN;
+    if (gearbeiteteStunden >= PAUSE_2_AB_STUNDEN) abzug += PAUSE_2_STUNDEN;
+    return abzug;
+  }
+
+  function timeStringFromTimestamp(ts) {
+    const d = new Date(ts);
+    return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+  }
+
+  function timestampFromTimeString(timeStr, isPreviousDay) {
+    const [hh, mm] = timeStr.split(':').map(Number);
+    const d = new Date();
+    if (isPreviousDay) d.setDate(d.getDate() - 1);
+    d.setHours(hh, mm, 0, 0);
+    return d.getTime();
+  }
+
+  function formatStartDisplay(ts, isPreviousDay) {
+    return timeStringFromTimestamp(ts) + (isPreviousDay ? ' (Vortag)' : '');
+  }
+
+  // ==== VORSCHAU DER RATE ====
+  function updateRatePreview() {
+    const salary = parseFloat(salaryInput.value);
+    const hours = parseFloat(hoursInput.value);
+    if (salary > 0 && hours > 0) {
+      const jahresgehalt = salary * MONATE_PRO_JAHR;
+      const jahresstunden = hours * WOCHEN_PRO_JAHR;
+      const stundenlohn = jahresgehalt / jahresstunden;
+      const sekundenlohn = stundenlohn / 3600;
+      ratePreview.textContent = formatMoney(stundenlohn) + ' €/Std. · ' + sekundenlohn.toFixed(6).replace('.', ',') + ' €/Sek.';
+      elRate.textContent = formatMoney(stundenlohn) + ' €/Std.';
+    } else {
+      ratePreview.textContent = '– €/Std. · – €/Sek.';
+      elRate.textContent = '– €/Std.';
+    }
+  }
+
+  // ==== EINSTELLUNGEN ÄNDERN (jederzeit, auch im laufenden Betrieb) ====
+  function onSettingsChange() {
+    state.salary = parseFloat(salaryInput.value) || null;
+    state.weeklyHours = parseFloat(hoursInput.value) || null;
+    state.breakOption = breakOption.checked;
+    state.demoMode = demoMode.checked;
+    updateRatePreview();
+    saveState();
+    update();
+  }
+
+  salaryInput.addEventListener('input', onSettingsChange);
+  hoursInput.addEventListener('input', onSettingsChange);
+  breakOption.addEventListener('change', onSettingsChange);
+  demoMode.addEventListener('change', onSettingsChange);
+
+  function applyManualStartTime() {
+    if (!startTimeInput.value) return;
+    const isPrevDay = startDaySelect.value === '-1';
+    state.startTimestamp = timestampFromTimeString(startTimeInput.value, isPrevDay);
+    state.startIsPreviousDay = isPrevDay;
+    lastRealTime = Date.now();
+    demoOffset = 0;
+    startBtn.textContent = 'Zurücksetzen';
+    startBtn.classList.remove('btn-start');
+    startBtn.classList.add('btn-stop');
+    startDisplay.textContent = formatStartDisplay(state.startTimestamp, state.startIsPreviousDay);
+    saveState();
+    update();
+  }
+
+  startTimeInput.addEventListener('change', applyManualStartTime);
+  startDaySelect.addEventListener('change', applyManualStartTime);
+
+  // ==== START / ZURÜCKSETZEN ====
+  function isRunning() {
+    return !!state.startTimestamp;
+  }
+
+  function refreshStartButton() {
+    if (isRunning()) {
+      startBtn.textContent = 'Zurücksetzen';
+      startBtn.classList.remove('btn-start');
+      startBtn.classList.add('btn-stop');
+      startDisplay.textContent = formatStartDisplay(state.startTimestamp, state.startIsPreviousDay);
+    } else {
+      startBtn.textContent = 'Start';
+      startBtn.classList.remove('btn-stop');
+      startBtn.classList.add('btn-start');
+      startDisplay.textContent = '–';
+    }
+  }
+
+  startBtn.addEventListener('click', () => {
+    if (isRunning()) {
+      // Zurücksetzen
+      state.startTimestamp = null;
+      state.startIsPreviousDay = false;
+      startTimeInput.value = '';
+      startDaySelect.value = '0';
+      saveState();
+      refreshStartButton();
+      update();
+    } else {
+      // Starten
+      const isPrevDay = startDaySelect.value === '-1';
+      const ts = startTimeInput.value
+        ? timestampFromTimeString(startTimeInput.value, isPrevDay)
+        : Date.now();
+      state.startTimestamp = ts;
+      state.startIsPreviousDay = startTimeInput.value ? isPrevDay : false;
+      startTimeInput.value = timeStringFromTimestamp(ts);
+      startDaySelect.value = state.startIsPreviousDay ? '-1' : '0';
+      lastRealTime = Date.now();
+      demoOffset = 0;
+      saveState();
+      refreshStartButton();
+      update();
+    }
+  });
+
+  // ==== LIVE-UPDATE ====
+  function update() {
+    if (!isRunning()) {
+      elWorked.textContent = '0:00:00';
+      elEarned.innerHTML = '0,00 <small>€</small>';
+      elDeductionRow.style.display = 'none';
+      elStatus.textContent = 'Nicht gestartet.';
+      return;
+    }
+
+    const now = Date.now();
+    const sekundenlohn = berechneSekundenlohn(state.salary, state.weeklyHours);
+
+    if (state.demoMode) {
+      const dt = (now - lastRealTime) / 1000;
+      demoOffset += dt * 60;
+      elStatus.textContent = 'Demo-Modus aktiv (60× Zeitraffer)';
+    } else {
+      elStatus.textContent = 'Live';
+      demoOffset = 0;
+    }
+    lastRealTime = now;
+
+    const realeSekunden = (now - state.startTimestamp) / 1000;
+    const virtuelleSekunden = realeSekunden + demoOffset;
+
+    if (virtuelleSekunden < 0) {
+      elWorked.textContent = '0:00:00';
+      elEarned.innerHTML = '0,00 <small>€</small>';
+      elDeductionRow.style.display = 'none';
+      elStatus.textContent = 'Arbeitstag hat noch nicht begonnen.';
+      return;
+    }
+
+    const gearbeiteteStunden = virtuelleSekunden / 3600;
+    const brutto = virtuelleSekunden * sekundenlohn;
+
+    let abzugGeld = 0;
+    if (state.breakOption) {
+      const abzugStunden = berechnePausenAbzug(gearbeiteteStunden);
+      abzugGeld = abzugStunden * (sekundenlohn * 3600);
+    }
+
+    const netto = Math.max(0, brutto - abzugGeld);
+
+    elWorked.textContent = formatDuration(virtuelleSekunden);
+    elEarned.innerHTML = formatMoney(netto) + ' <small>€</small>';
+
+    if (state.breakOption && abzugGeld > 0) {
+      elDeductionRow.style.display = 'flex';
+      elDeduction.textContent = '– ' + formatMoney(abzugGeld) + ' €';
+    } else {
+      elDeductionRow.style.display = 'none';
+    }
+  }
+
+  // ==== INITIALISIERUNG ====
+  loadState();
+  if (state.salary) salaryInput.value = state.salary;
+  if (state.weeklyHours) hoursInput.value = state.weeklyHours;
+  breakOption.checked = !!state.breakOption;
+  demoMode.checked = !!state.demoMode;
+  if (state.startTimestamp) {
+    startTimeInput.value = timeStringFromTimestamp(state.startTimestamp);
+    startDaySelect.value = state.startIsPreviousDay ? '-1' : '0';
+  }
+
+  updateRatePreview();
+  refreshStartButton();
+  update();
+  setInterval(update, 1000);
+
+  // ==== PWA: SERVICE WORKER REGISTRIEREN ====
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch((err) => {
+        console.warn('Service Worker Registrierung fehlgeschlagen:', err);
+      });
+    });
+  }
+})();
+</script>
+</body>
+</html>
